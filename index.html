@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMT vs USDC Price Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        body.dark-mode .container {
+            background: #2d2d2d;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        body.dark-mode .header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode .status {
+            background: #3a3a3a;
+            border-left-color: #667eea;
+        }
+
+        .status p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .status p {
+            color: #d0d0d0;
+        }
+
+        .status strong {
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .status strong {
+            color: #e0e0e0;
+        }
+
+        table {
+            width: auto;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        thead {
+            background: #f8f9fa;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode thead {
+            background: #3a3a3a;
+        }
+
+        th {
+            padding: 8px 50px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        th:first-child {
+            text-align: left;
+        }
+
+        th:last-child {
+            text-align: center;
+        }
+
+        body.dark-mode th {
+            color: #e0e0e0;
+            border-bottom-color: #555;
+        }
+
+        td {
+            padding: 8px 20px;
+            border-bottom: 1px solid #e9ecef;
+            white-space: nowrap;
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        td:first-child {
+            text-align: left;
+        }
+
+        td:last-child {
+            text-align: center;
+        }
+
+        body.dark-mode td {
+            color: #e0e0e0;
+            border-bottom-color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode tbody tr:hover {
+            background: #3a3a3a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .loading {
+            color: #aaa;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c33;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.3s;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        body.dark-mode .theme-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        body.dark-mode .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌓</button>
+            <h1>GMT vs USDC Price Tracker</h1>
+            <p>Daily price data fetched from Binance at UTC 00:00</p>
+        </div>
+        <div class="content">
+            <div class="status">
+                <p><strong>Status:</strong> <span id="status">Loading...</span></p>
+                <p><strong>Last Update:</strong> <span id="lastUpdate">-</span></p>
+                <p><strong>Next Fetch:</strong> <span id="nextFetch">-</span></p>
+                <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">Refresh Now</button>
+            </div>
+            <div id="errorContainer"></div>
+            <div id="tableContainer">
+                <div class="loading">Loading data...</div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
