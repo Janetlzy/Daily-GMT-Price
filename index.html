@@ -240,6 +240,130 @@
         body.dark-mode .theme-toggle:hover {
             background: rgba(255, 255, 255, 0.2);
         }
+
+        .calculator {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode .calculator {
+            background: #3a3a3a;
+            border-left-color: #667eea;
+        }
+
+        .calculator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calculator h2 {
+            font-size: 20px;
+            margin: 0;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .calculator h2 {
+            color: #e0e0e0;
+        }
+
+        .switch-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .switch-btn:hover {
+            background: #5568d3;
+        }
+
+        .calculator-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .calculator-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .calculator-input-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .calculator-input-group label {
+            color: #d0d0d0;
+        }
+
+        .calculator-input-group input {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode .calculator-input-group input {
+            background: #2d2d2d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .calculator-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .calculator-result {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+            transition: border-color 0.3s;
+        }
+
+        body.dark-mode .calculator-result {
+            border-top-color: #555;
+        }
+
+        .calculator-result label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .calculator-result label {
+            color: #d0d0d0;
+        }
+
+        .result-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            transition: color 0.3s;
+        }
+
+        body.dark-mode .result-value {
+            color: #8b9aff;
+        }
     </style>
 </head>
 <body>
@@ -257,6 +381,28 @@
                 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">Refresh Now</button>
             </div>
             <div id="errorContainer"></div>
+            <div class="calculator">
+                <div class="calculator-header">
+                    <h2>Exchange Calculator</h2>
+                    <button class="switch-btn" id="switchModeBtn" onclick="switchCalculatorMode()">
+                        <span id="switchModeText">Switch to GMT → USDC</span>
+                    </button>
+                </div>
+                <div class="calculator-content">
+                    <div class="calculator-input-group">
+                        <label for="amountInput" id="inputLabel">USDC Amount:</label>
+                        <input type="text" id="amountInput" placeholder="Enter amount" inputmode="decimal">
+                    </div>
+                    <div class="calculator-input-group">
+                        <label for="exchangeDate">Exchange Rate Date (optional):</label>
+                        <input type="date" id="exchangeDate">
+                    </div>
+                    <div class="calculator-result">
+                        <label id="outputLabel">GMT Amount:</label>
+                        <div id="resultOutput" class="result-value">-</div>
+                    </div>
+                </div>
+            </div>
             <div id="tableContainer">
                 <div class="loading">Loading data...</div>
             </div>

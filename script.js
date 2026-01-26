@@ -8,6 +8,7 @@ const BINANCE_API = 'https://api.binance.com/api/v3';
 document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
     initializeApp();
+    initializeCalculator();
 });
 
 // Theme management
@@ -372,10 +373,184 @@ async function refreshData() {
     
     try {
         await fetchAndStoreData(loadStoredData());
+        // Recalculate after refresh
+        calculateExchange();
     } catch (error) {
         showError(`Error refreshing: ${error.message}`);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Refresh Now';
     }
+}
+
+// Calculator mode: true = USDC → GMT, false = GMT → USDC
+let calculatorMode = true; // Default: USDC → GMT
+
+function initializeCalculator() {
+    const amountInput = document.getElementById('amountInput');
+    const dateInput = document.getElementById('exchangeDate');
+    
+    // Add event listeners
+    amountInput.addEventListener('input', formatInputAmount);
+    amountInput.addEventListener('input', calculateExchange);
+    dateInput.addEventListener('change', calculateExchange);
+}
+
+function formatInputAmount(event) {
+    const input = event.target;
+    const cursorPosition = input.selectionStart;
+    const oldValue = input.value;
+    
+    // Get the raw value (remove all commas)
+    const rawValue = input.value.replace(/,/g, '');
+    
+    // If empty, allow it
+    if (rawValue === '') {
+        return;
+    }
+    
+    // If just a decimal point or starts with decimal, allow it
+    if (rawValue === '.' || rawValue.startsWith('.')) {
+        return;
+    }
+    
+    // Parse the number
+    const num = parseFloat(rawValue);
+    
+    // If not a valid number, don't format
+    if (isNaN(num) && rawValue !== '') {
+        return;
+    }
+    
+    // Format with thousand separators
+    // Split into integer and decimal parts
+    const parts = rawValue.split('.');
+    const integerPart = parts[0] || '';
+    const decimalPart = parts[1] || '';
+    
+    // Format integer part with commas
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    // Combine parts
+    const formattedValue = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    
+    // Only update if the formatted value is different
+    if (formattedValue !== oldValue) {
+        // Calculate new cursor position
+        // Count how many digits were before the cursor in the old value
+        const digitsBeforeCursor = oldValue.substring(0, cursorPosition).replace(/,/g, '').length;
+        
+        // Find the position in the new formatted value that has the same number of digits before it
+        let newCursorPosition = 0;
+        let digitCount = 0;
+        
+        for (let i = 0; i < formattedValue.length; i++) {
+            if (formattedValue[i] !== ',') {
+                digitCount++;
+            }
+            if (digitCount === digitsBeforeCursor) {
+                newCursorPosition = i + 1;
+                break;
+            }
+        }
+        
+        // If we didn't find the exact position, place at end
+        if (newCursorPosition === 0) {
+            newCursorPosition = formattedValue.length;
+        }
+        
+        // Update the input value
+        input.value = formattedValue;
+        
+        // Restore cursor position
+        input.setSelectionRange(newCursorPosition, newCursorPosition);
+    }
+}
+
+function switchCalculatorMode() {
+    calculatorMode = !calculatorMode;
+    const amountInput = document.getElementById('amountInput');
+    const inputLabel = document.getElementById('inputLabel');
+    const outputLabel = document.getElementById('outputLabel');
+    const switchModeText = document.getElementById('switchModeText');
+    
+    // Clear input and result
+    amountInput.value = '';
+    document.getElementById('resultOutput').textContent = '-';
+    amountInput.blur(); // Remove focus to avoid formatting issues
+    
+    // Update labels
+    if (calculatorMode) {
+        inputLabel.textContent = 'USDC Amount:';
+        outputLabel.textContent = 'GMT Amount:';
+        amountInput.placeholder = 'Enter USDC amount';
+        switchModeText.textContent = 'Switch to GMT → USDC';
+    } else {
+        inputLabel.textContent = 'GMT Amount:';
+        outputLabel.textContent = 'USDC Amount:';
+        amountInput.placeholder = 'Enter GMT amount';
+        switchModeText.textContent = 'Switch to USDC → GMT';
+    }
+}
+
+function formatNumber(num) {
+    // Format with thousand separators and 4 decimal places
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4
+    });
+}
+
+function calculateExchange() {
+    // Parse amount by removing commas first
+    const amountInputValue = document.getElementById('amountInput').value.replace(/,/g, '');
+    const amount = parseFloat(amountInputValue);
+    const selectedDate = document.getElementById('exchangeDate').value;
+    const resultEl = document.getElementById('resultOutput');
+    
+    // If no amount entered, show placeholder
+    if (!amount || amount <= 0 || isNaN(amount)) {
+        resultEl.textContent = '-';
+        return;
+    }
+    
+    // Get price data
+    const data = loadStoredData();
+    if (data.length === 0) {
+        resultEl.textContent = 'No data available';
+        return;
+    }
+    
+    let price;
+    
+    if (selectedDate) {
+        // Find price for selected date
+        const selectedData = data.find(item => item.date === selectedDate);
+        if (selectedData) {
+            price = parseFloat(selectedData.price);
+        } else {
+            resultEl.textContent = 'Date not found';
+            return;
+        }
+    } else {
+        // Use today's price (most recent data)
+        const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (sortedData.length > 0) {
+            price = parseFloat(sortedData[0].price);
+        } else {
+            resultEl.textContent = 'No price data';
+            return;
+        }
+    }
+    
+    let result;
+    if (calculatorMode) {
+        // USDC → GMT: amount / price
+        result = amount / price;
+    } else {
+        // GMT → USDC: amount * price
+        result = amount * price;
+    }
+    
+    resultEl.textContent = formatNumber(result);
 }
