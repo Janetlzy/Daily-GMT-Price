@@ -403,6 +403,9 @@ function formatInputAmount(event) {
     
     // Get the raw value (remove all commas)
     const rawValue = input.value.replace(/,/g, '');
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/eaa1cb19-1038-4000-b674-1406b166431a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:formatInputAmount',message:'formatInputAmount entry',data:{rawValue,oldValue,cursorPosition,hasDecimal:rawValue.includes('.'),endsWithDecimal:rawValue.endsWith('.')},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,E'})}).catch(()=>{});
+    // #endregion
     
     // If empty, allow it
     if (rawValue === '') {
@@ -427,12 +430,19 @@ function formatInputAmount(event) {
     const parts = rawValue.split('.');
     const integerPart = parts[0] || '';
     const decimalPart = parts[1] || '';
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/eaa1cb19-1038-4000-b674-1406b166431a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:formatInputAmount',message:'parts before format',data:{integerPart,decimalPart,rawValue,partsLength:parts.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     
     // Format integer part with commas
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     
-    // Combine parts
-    const formattedValue = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    // Combine parts: preserve trailing decimal (e.g. "139.") so user can type digits after
+    const hasDecimalPoint = rawValue.includes('.');
+    const formattedValue = hasDecimalPoint ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/eaa1cb19-1038-4000-b674-1406b166431a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:formatInputAmount',message:'formattedValue before assign',data:{formattedValue,formattedInteger,decimalPart,preservesDecimal:formattedValue.includes('.')},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,E'})}).catch(()=>{});
+    // #endregion
     
     // Only update if the formatted value is different
     if (formattedValue !== oldValue) {
@@ -461,6 +471,9 @@ function formatInputAmount(event) {
         
         // Update the input value
         input.value = formattedValue;
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/eaa1cb19-1038-4000-b674-1406b166431a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:formatInputAmount',message:'input.value assigned',data:{assignedValue:formattedValue,oldValue,newCursorPosition},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         
         // Restore cursor position
         input.setSelectionRange(newCursorPosition, newCursorPosition);
