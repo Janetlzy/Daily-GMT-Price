@@ -3,6 +3,7 @@ const STORAGE_KEY = 'gmt_usdc_price_data';
 const SYMBOL = 'GMTUSDC';
 const START_DATE = '2026-01-01';
 const BINANCE_API = 'https://api.binance.com/api/v3';
+let currentMarketPrice = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -71,6 +72,9 @@ async function initializeApp() {
     // Set up daily fetch at UTC 00:00
     scheduleDailyFetch();
     
+    // Fetch one-time current market price on page load
+    await updateCurrentMarketPriceDisplay();
+
     // Update display info
     updateDisplayInfo();
 }
@@ -242,6 +246,18 @@ async function fetchTodayPrice() {
     }
 }
 
+async function fetchCurrentMarketPrice() {
+    const url = `${BINANCE_API}/ticker/price?symbol=${SYMBOL}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return parseFloat(data.price);
+}
+
 function loadStoredData() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -271,9 +287,37 @@ function displayData(data) {
         return;
     }
     
+    const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latestUtc0Price = parseFloat(sortedData[0].price);
+
+    let currentPriceText = 'Current Binance GMT Price: Loading...';
+    if (currentMarketPrice === 'error') {
+        currentPriceText = 'Current Binance GMT Price: Error';
+    } else if (typeof currentMarketPrice === 'number' && !Number.isNaN(currentMarketPrice)) {
+        currentPriceText = `Current Binance GMT Price: ${currentMarketPrice.toFixed(6)}`;
+    }
+
+    let comparisonText = 'Difference vs latest price at UTC0: -';
+    if (
+        typeof currentMarketPrice === 'number' &&
+        !Number.isNaN(currentMarketPrice) &&
+        !Number.isNaN(latestUtc0Price) &&
+        latestUtc0Price !== 0
+    ) {
+        const diff = currentMarketPrice - latestUtc0Price;
+        const diffPct = (diff / latestUtc0Price) * 100;
+        const sign = diff > 0 ? '+' : '';
+        comparisonText = `Difference vs latest price at UTC0: ${sign}${diff.toFixed(6)} (${sign}${diffPct.toFixed(2)}%)`;
+    } else if (currentMarketPrice === 'error') {
+        comparisonText = 'Difference vs latest price at UTC0: Error';
+    }
+
     let html = `
         <table>
             <thead>
+                <tr class="current-price-row">
+                    <th colspan="2">${currentPriceText}<br>${comparisonText}</th>
+                </tr>
                 <tr>
                     <th>Date</th>
                     <th>GMT vs USDC</th>
@@ -281,9 +325,6 @@ function displayData(data) {
             </thead>
             <tbody>
     `;
-    
-    // Display in reverse chronological order (newest first)
-    const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
     
     sortedData.forEach(item => {
         // Ensure price is always 6 digits, even if stored with fewer
@@ -334,6 +375,34 @@ function updateDisplayInfo() {
     }
 }
 
+function getLatestUtc0Price() {
+    const data = loadStoredData();
+    if (data.length === 0) {
+        return null;
+    }
+
+    const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (sortedData.length === 0) {
+        return null;
+    }
+
+    return parseFloat(sortedData[0].price);
+}
+
+async function updateCurrentMarketPriceDisplay() {
+    currentMarketPrice = null;
+    displayData(loadStoredData());
+
+    try {
+        currentMarketPrice = await fetchCurrentMarketPrice();
+        displayData(loadStoredData());
+    } catch (error) {
+        console.error('Error fetching current market price:', error);
+        currentMarketPrice = 'error';
+        displayData(loadStoredData());
+    }
+}
+
 function showError(message) {
     const errorContainer = document.getElementById('errorContainer');
     errorContainer.innerHTML = `<div class="error">${message}</div>`;
@@ -373,6 +442,7 @@ async function refreshData() {
     
     try {
         await fetchAndStoreData(loadStoredData());
+        await updateCurrentMarketPriceDisplay();
         // Recalculate after refresh
         calculateExchange();
     } catch (error) {
